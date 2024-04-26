@@ -1,10 +1,12 @@
+                                                   docker-compose.yml                                                                
 version: '3'
 
 services:
   reverse-proxy:
     image: traefik:v2.11
     command:
-      - "--api.insecure=true"
+      - "--api.insecure=false"
+      - "--api.dashboard=true"
       - "--providers.docker"
       - "--log.level=DEBUG"
       - "--providers.docker.exposedByDefault=false"
@@ -20,8 +22,16 @@ services:
       - "--certificatesresolvers.le.acme.tlschallenge=true"
       - "--certificatesresolvers.le.acme.email=375445523042@mail.ru"
       - "--certificatesresolvers.le.acme.storage=/letsencrypt/acme.json"
+
+    #Dashboard secure:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.hostbeaver.ru`)"
+      - "traefik.http.routers.dashboard.entrypoints=https"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.middlewares=auth"
+      - "traefik.http.middlewares.auth.basicauth.users=admin:$$apr1$$uviltibS$$v56sezW0.L5pZZcS9ekNa." 
     ports:
-      - "80:80"
       - "443:443"
       - "8080:8080"
     volumes:
@@ -31,4 +41,3 @@ services:
 networks:
   default:
     name: proxynet
-    external: true

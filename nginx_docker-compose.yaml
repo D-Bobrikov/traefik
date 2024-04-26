@@ -1,0 +1,56 @@
+services:
+    webserver:
+        image: 'nginx:latest'
+        container_name: lara_nginx
+        working_dir: /var/www
+        restart: unless-stopped
+        volumes:
+            - '/etc/letsencrypt/:/etc/letsencrypt/'
+            - '.:/var/www'
+            - './phpdocker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf'
+        labels:
+            - "traefik.enable=true"
+            - "traefik.http.routers.lara_nginx.rule=Host(`hostbeaver.ru`)"
+            - "traefik.http.services.lara_nginx.loadbalancer.server.port=80"
+        depends_on:
+            - php-fpm
+            - redis
+            - mysql
+
+    mysql:
+        image: 'mysql:latest'
+        working_dir: /var/www
+        restart: unless-stopped
+        volumes:
+            - '.:/var/www'
+            - '/home/admin/db/lara/mysql/:/var/lib/mysql'
+        environment:
+            - MYSQL_ROOT_PASSWORD=36gucoj1
+            - MYSQL_DATABASE=lara
+            - MYSQL_USER=admin
+            - MYSQL_PASSWORD=36gucoj1
+        labels:
+            - traefik.enable=false
+    php-fpm:
+        build: phpdocker/php-fpm
+        working_dir: /var/www
+        restart: unless-stopped
+        volumes:
+            - '.:/var/www'
+            - './phpdocker/php-fpm/php-ini-overrides.ini:/etc/php/8.3/fpm/conf.d/99-overrides.ini'
+        depends_on:
+            - mysql
+        labels:
+            - traefik.enable=false
+
+    redis:
+        image: 'redis:latest'
+        restart: unless-stopped
+        labels:
+            - traefik.enable=false
+
+
+networks:
+  default:
+    name: proxynet
+    external: true
